@@ -10,6 +10,8 @@ from tools.dataloader import norm_RGB
 from nets.patchnet import *
 from os import path
 
+import numpy as np
+
 from extract import load_network, NonMaxSuppression, extract_multiscale
 
 # Kapture is a pivot file format, based on text and binary files, used to describe SfM (Structure From Motion)
@@ -24,6 +26,9 @@ from kapture.io.csv import get_feature_csv_fullpath, keypoints_to_file, descript
 from kapture.io.features import get_keypoints_fullpath, keypoints_check_dir, image_keypoints_to_file
 from kapture.io.features import get_descriptors_fullpath, descriptors_check_dir, image_descriptors_to_file
 from kapture.io.csv import get_all_tar_handlers
+import copy
+
+default_mask = []
 
 
 def extract_kapture_keypoints(args):
@@ -100,6 +105,12 @@ def extract_kapture_keypoints(args):
             img_path = get_image_fullpath(args.kapture_root, image_name)
             print(f"\nExtracting features for {img_path}")
             img = Image.open(img_path).convert('RGB')
+            img_np = np.array(copy.deepcopy(img))
+            # create image mask where the img pixels are exactly 0
+            # if args.apply_mask:
+            #     mask = np.where(np.all(img == [0,0,0], axis=-1))
+            # this is new
+
             W, H = img.size
             img = norm_RGB(img)[None]
             if iscuda:
@@ -118,6 +129,9 @@ def extract_kapture_keypoints(args):
             desc = desc.cpu().numpy()
             scores = scores.cpu().numpy()
             idxs = scores.argsort()[-args.top_k or None:]
+
+            if args.apply_mask:
+                idxs = np.array([idx for idx in idxs if not all(img_np[int(xys[idx][1]), int(xys[idx][0]), :]==[0,0,0])])
 
             xys = xys[idxs]
             desc = desc[idxs]
@@ -187,8 +201,10 @@ if __name__ == '__main__':
 
     parser.add_argument("--reliability-thr", type=float, default=0.7)
     parser.add_argument("--repeatability-thr", type=float, default=0.7)
+    parser.add_argument("--apply-mask", action='store_true')
 
     parser.add_argument("--gpu", type=int, nargs='+', default=[0], help='use -1 for CPU')
     args = parser.parse_args()
 
     extract_kapture_keypoints(args)
+
