@@ -28,6 +28,8 @@ from kapture.io.features import get_descriptors_fullpath, descriptors_check_dir,
 from kapture.io.csv import get_all_tar_handlers
 import copy
 
+from tqdm import tqdm
+
 default_mask = []
 
 
@@ -101,9 +103,11 @@ def extract_kapture_keypoints(args):
             descriptors_dtype = kdata.descriptors[args.descriptors_type].dtype
             descriptors_dsize = kdata.descriptors[args.descriptors_type].dsize
 
-        for image_name in image_list:
+        for i in tqdm(range(len(image_list))):
+
+            image_name = image_list[i]
             img_path = get_image_fullpath(args.kapture_root, image_name)
-            print(f"\nExtracting features for {img_path}")
+            # print(f"\nExtracting features for {img_path}")
             img = Image.open(img_path).convert('RGB')
             img_np = np.array(copy.deepcopy(img))
             # create image mask where the img pixels are exactly 0
@@ -123,7 +127,7 @@ def extract_kapture_keypoints(args):
                                                    max_scale=args.max_scale,
                                                    min_size=args.min_size,
                                                    max_size=args.max_size,
-                                                   verbose=True)
+                                                   verbose=False)
 
             xys = xys.cpu().numpy()
             desc = desc.cpu().numpy()
@@ -164,13 +168,13 @@ def extract_kapture_keypoints(args):
 
             keypoints_fullpath = get_keypoints_fullpath(args.keypoints_type, args.kapture_root,
                                                         image_name, tar_handlers)
-            print(f"Saving {xys.shape[0]} keypoints to {keypoints_fullpath}")
+            # print(f"Saving {xys.shape[0]} keypoints to {keypoints_fullpath}")
             image_keypoints_to_file(keypoints_fullpath, xys)
             kdata.keypoints[args.keypoints_type].add(image_name)
 
             descriptors_fullpath = get_descriptors_fullpath(args.descriptors_type, args.kapture_root,
                                                             image_name, tar_handlers)
-            print(f"Saving {desc.shape[0]} descriptors to {descriptors_fullpath}")
+            # print(f"Saving {desc.shape[0]} descriptors to {descriptors_fullpath}")
             image_descriptors_to_file(descriptors_fullpath, desc)
             kdata.descriptors[args.descriptors_type].add(image_name)
 
@@ -207,4 +211,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     extract_kapture_keypoints(args)
-
