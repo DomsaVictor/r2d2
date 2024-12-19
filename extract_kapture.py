@@ -75,6 +75,14 @@ def extract_kapture_keypoints(args):
 
         iscuda = common.torch_set_gpu(args.gpu)
 
+        mask = None
+        if len(args.mask_path) > 0: 
+            if path.exists(args.mask_path):
+                mask = np.array(Image.open(args.mask_path).convert('RGB'))
+            else:
+                print(f"Warning: could not load mask path: '{args.mask_path}'")
+
+
         # load the network...
         net = load_network(args.model)
         if iscuda:
@@ -109,7 +117,6 @@ def extract_kapture_keypoints(args):
             img_path = get_image_fullpath(args.kapture_root, image_name)
             # print(f"\nExtracting features for {img_path}")
             img = Image.open(img_path).convert('RGB')
-            img_np = np.array(copy.deepcopy(img))
             # create image mask where the img pixels are exactly 0
             # if args.apply_mask:
             #     mask = np.where(np.all(img == [0,0,0], axis=-1))
@@ -134,8 +141,9 @@ def extract_kapture_keypoints(args):
             scores = scores.cpu().numpy()
             idxs = scores.argsort()[-args.top_k or None:]
 
-            if args.apply_mask:
-                idxs = np.array([idx for idx in idxs if not all(img_np[int(xys[idx][1]), int(xys[idx][0]), :]==[0,0,0])])
+            # CHANGE HERE!!!
+            if mask is not None:
+                idxs = np.array([idx for idx in idxs if not all(mask[int(xys[idx][1]), int(xys[idx][0]), :]==[0,0,0])])
 
             xys = xys[idxs]
             desc = desc[idxs]
@@ -205,7 +213,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--reliability-thr", type=float, default=0.7)
     parser.add_argument("--repeatability-thr", type=float, default=0.7)
-    parser.add_argument("--apply-mask", action='store_true')
+    parser.add_argument("--mask-path", type=str, default='')
 
     parser.add_argument("--gpu", type=int, nargs='+', default=[0], help='use -1 for CPU')
     args = parser.parse_args()
