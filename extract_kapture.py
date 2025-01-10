@@ -61,11 +61,15 @@ def extract_kapture_keypoints(args):
 
         if kdata.keypoints is not None and args.keypoints_type in kdata.keypoints \
                 and kdata.descriptors is not None and args.descriptors_type in kdata.descriptors:
-            print('detected already computed features of same keypoints_type/descriptors_type, resuming extraction...')
-            image_list = [name
-                          for name in image_list
-                          if name not in kdata.keypoints[args.keypoints_type] or
-                          name not in kdata.descriptors[args.descriptors_type]]
+            print(args.force)
+            if args.force == 0:
+                print('detected already computed features of same keypoints_type/descriptors_type, resuming extraction...')
+                image_list = [name
+                            for name in image_list
+                            if name not in kdata.keypoints[args.keypoints_type] or
+                            name not in kdata.descriptors[args.descriptors_type]]
+            else: 
+                print('overwriting the already extracted features!')
 
         if len(image_list) == 0:
             print('All features were already extracted')
@@ -216,6 +220,10 @@ if __name__ == '__main__':
     parser.add_argument("--mask-path", type=str, default='')
 
     parser.add_argument("--gpu", type=int, nargs='+', default=[0], help='use -1 for CPU')
+
+
+    parser.add_argument("--force", type=int, default=0, help='if true, the script overwrites the data')
+
     args = parser.parse_args()
 
     extract_kapture_keypoints(args)
