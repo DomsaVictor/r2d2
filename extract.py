@@ -14,7 +14,7 @@ from nets.patchnet import *
 
 
 def load_network(model_fn): 
-    checkpoint = torch.load(model_fn)
+    checkpoint = torch.load(model_fn, weights_only=False)
     print("\n>> Creating net = " + checkpoint['net']) 
     net = eval(checkpoint['net'])
     nb_of_weights = common.model_size(net)
